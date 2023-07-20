@@ -1,0 +1,58 @@
+//@version=4
+strategy("Pivot Extension Strategy", overlay=true)
+leftBars = input(4)
+rightBars = input(2)
+ph = pivothigh(leftBars, rightBars)
+pl = pivotlow(leftBars, rightBars)
+
+//time conditions
+//INTRADAY
+s=input(title="INTRA DAY TRADE SESSION",type=input.session,defval="0915-1450")
+st=time(timeframe.period,s)
+e=input(title="END SESSION",type=input.session,defval="1515-1520")
+et=time(timeframe.period,e)
+symbol=syminfo.ticker
+//trading custom quantities
+quant=input(title="Trade Quantity",defval=1)
+lxse="TYPE: LX" + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant) + " :TYPE:SE " + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant)
+
+sxle="TYPE: SX" + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant) + " :TYPE:LE " + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant)
+
+le="TYPE:LE " + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant)
+
+lx="TYPE:LX " + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant)
+
+se="TYPE:SE " + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant)
+
+sx="TYPE:SX " + " :SYMBOL: " + syminfo.ticker + " :QTY: " + tostring(quant)
+if ((not na(pl))  and strategy.position_size==0)
+//Restricting entry time
+    strategy.entry("LE", strategy.long, stop=ph + syminfo.mintick,comment=le,when=st)
+    strategy.entry("SE", strategy.short, stop=pl - syminfo.mintick,comment=se,when=st)
+    
+if ((not na(ph)) and strategy.position_size!=0)
+//Restricting entry time
+    strategy.entry("LE", strategy.long, stop=ph + syminfo.mintick,comment=sxle,when=st)
+    strategy.entry("SE", strategy.short, stop=pl - syminfo.mintick,comment=lxse,when=st)
+
+
+//adding stoploss and target option
+ut=input(defval=false,title="USE TARGET")
+us=input(defval=false,title="USE STOPLOSS")
+tar=input(defval=10.0,title="TARGET IN RS")
+stop=input(defval=7.0,title="STOP LOSS IN RS")
+tar:=tar/syminfo.mintick
+stop:=stop/syminfo.mintick
+if(ut==true and us==false)
+    strategy.exit(id="LX",from_entry="LE",profit=tar,comment=lx)
+    strategy.exit(id="SX",from_entry="SE",profit=tar,comment=sx)
+if(us==true and ut==false)
+    strategy.exit(id="LX",from_entry="LE",loss=stop,comment=lx)
+    strategy.exit(id="SX",from_entry="SE",loss=stop,comment=sx)
+    
+if(ut==true and us==true)
+    strategy.exit(id="LX",from_entry="LE",profit=tar,loss=stop,comment=lx)
+    strategy.exit(id="SX",from_entry="SE",profit=tar,loss=stop,comment=sx)
+//ADDING SQUAREOFF TIME
+strategy.close(id="LE",when=et,comment=lx)
+strategy.close(id="SE",when=et,comment=sx)
